@@ -503,17 +503,27 @@ function copyText(btn, text) {
     btn.textContent = '✅ 已复制';
     setTimeout(() => btn.textContent = orig, 2000);
   }).catch(() => {
-    /* fallback for http contexts */
-    const ta = document.createElement('textarea');
-    ta.value = decoded;
-    ta.style.position = 'fixed';
-    ta.style.opacity  = '0';
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    btn.textContent = '✅ 已复制';
-    setTimeout(() => btn.textContent = orig, 2000);
+    /* fallback for non-HTTPS contexts */
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = decoded;
+      ta.style.position = 'fixed';
+      ta.style.opacity  = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (ok) {
+        btn.textContent = '✅ 已复制';
+        setTimeout(() => btn.textContent = orig, 2000);
+      } else {
+        btn.textContent = '❌ 复制失败，请手动选中后复制';
+        setTimeout(() => btn.textContent = orig, 3000);
+      }
+    } catch {
+      btn.textContent = '❌ 复制失败，请手动选中后复制';
+      setTimeout(() => btn.textContent = orig, 3000);
+    }
   });
 }
 

@@ -2,13 +2,12 @@
 seekprice – 报价单 vs 合同 比对系统
 端口: 5003
 """
+import logging
 import os
 import re
-import traceback
 import uuid
 
 from flask import Flask, jsonify, render_template, request
-from werkzeug.utils import secure_filename
 
 import docx
 import pdfplumber
@@ -23,9 +22,24 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 ALLOWED_EXT = {"doc", "docx", "pdf"}
 
+# Tolerance for floating-point financial comparisons (covers rounding differences)
+NUMERIC_COMPARISON_TOLERANCE = 0.02
+
+logger = logging.getLogger(__name__)
+
 
 def allowed(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[-1].lower() in ALLOWED_EXT
+
+
+def _safe_ext(filename: str) -> str:
+    """Extract and validate the file extension; raises ValueError if not allowed."""
+    if "." not in filename:
+        raise ValueError("文件名缺少扩展名")
+    ext = filename.rsplit(".", 1)[-1].lower()
+    if ext not in ALLOWED_EXT:
+        raise ValueError(f"不支持的文件格式: .{ext}")
+    return ext
 
 
 # ─── Number / string helpers ─────────────────────────────────────────────────
@@ -97,9 +111,8 @@ def identify_columns(headers: list) -> dict:
 
 # ─── Skip-row detection ───────────────────────────────────────────────────────
 
-_SKIP_RE = re.compile(
-    r"总计|合计|小计|未税金额合计|含税金额合计|税额合计|合\s*计"
-)
+# Skip rows that are totals/subtotals
+_SKIP_RE = re.compile(r"总计|合计|小计")
 
 
 def is_skip_row(row: list) -> bool:
@@ -321,11 +334,11 @@ def compare_documents(
             if cv is None or qv is None:
                 continue
 
-            # Numeric comparison with small tolerance (≤ 0.02)
+            # Numeric comparison with configurable tolerance for rounding differences
             try:
                 cf = float(str(cv).replace(",", "").replace("%", ""))
                 qf = float(str(qv).replace(",", "").replace("%", ""))
-                same = abs(cf - qf) <= 0.02
+                same = abs(cf - qf) <= NUMERIC_COMPARISON_TOLERANCE
             except ValueError:
                 same = str(cv).strip() == str(qv).strip()
 
@@ -358,8 +371,11 @@ def do_compare():
     if not allowed(contract_f.filename) or not allowed(quote_f.filename):
         return jsonify(error="仅支持 .doc / .docx / .pdf 格式"), 400
 
-    c_ext = contract_f.filename.rsplit(".", 1)[-1].lower()
-    q_ext = quote_f.filename.rsplit(".", 1)[-1].lower()
+    try:
+        c_ext = _safe_ext(contract_f.filename)
+        q_ext = _safe_ext(quote_f.filename)
+    except ValueError as ve:
+        return jsonify(error=str(ve)), 400
 
     c_path = os.path.join(UPLOAD_FOLDER, f"{uuid.uuid4().hex}.{c_ext}")
     q_path = os.path.join(UPLOAD_FOLDER, f"{uuid.uuid4().hex}.{q_ext}")
@@ -387,7 +403,8 @@ def do_compare():
         )
 
     except Exception as exc:
-        return jsonify(error=f"处理文件时出错：{exc}", detail=traceback.format_exc()), 500
+        logger.exception("Error processing uploaded files")
+        return jsonify(error=f"处理文件时出错，请检查文件格式是否正确。错误类型：{type(exc).__name__}"), 500
 
     finally:
         for p in (c_path, q_path):
