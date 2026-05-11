@@ -22,6 +22,10 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 ALLOWED_EXT = {"doc", "docx", "pdf"}
 
+# Hard-coded extension map: maps known user-provided extensions to literal strings.
+# Values come entirely from this constant, never from user input.
+_EXT_MAP: dict[str, str] = {"doc": "doc", "docx": "docx", "pdf": "pdf"}
+
 # Tolerance for floating-point financial comparisons (covers rounding differences)
 NUMERIC_COMPARISON_TOLERANCE = 0.02
 
@@ -32,14 +36,29 @@ def allowed(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[-1].lower() in ALLOWED_EXT
 
 
-def _safe_ext(filename: str) -> str:
-    """Extract and validate the file extension; raises ValueError if not allowed."""
+def _get_safe_ext(filename: str) -> str | None:
+    """
+    Return a whitelisted extension string (from _EXT_MAP values, not user input),
+    or None if the extension is not recognised.
+    """
     if "." not in filename:
-        raise ValueError("文件名缺少扩展名")
-    ext = filename.rsplit(".", 1)[-1].lower()
-    if ext not in ALLOWED_EXT:
-        raise ValueError(f"不支持的文件格式: .{ext}")
-    return ext
+        return None
+    raw = filename.rsplit(".", 1)[-1].lower()
+    return _EXT_MAP.get(raw)          # always returns a literal from _EXT_MAP
+
+
+def _safe_upload_path(filename_ext: str) -> str:
+    """
+    Build a safe temporary file path inside UPLOAD_FOLDER.
+    filename_ext must be a value from _EXT_MAP (caller's responsibility).
+    Returns an absolute path; raises ValueError if it escapes UPLOAD_FOLDER.
+    """
+    name = f"{uuid.uuid4().hex}.{filename_ext}"
+    path = os.path.realpath(os.path.join(UPLOAD_FOLDER, name))
+    base = os.path.realpath(UPLOAD_FOLDER)
+    if not path.startswith(base + os.sep) and path != base:
+        raise ValueError("生成的文件路径异常")
+    return path
 
 
 # ─── Number / string helpers ─────────────────────────────────────────────────
@@ -371,14 +390,17 @@ def do_compare():
     if not allowed(contract_f.filename) or not allowed(quote_f.filename):
         return jsonify(error="仅支持 .doc / .docx / .pdf 格式"), 400
 
-    try:
-        c_ext = _safe_ext(contract_f.filename)
-        q_ext = _safe_ext(quote_f.filename)
-    except ValueError as ve:
-        return jsonify(error=str(ve)), 400
+    c_ext = _get_safe_ext(contract_f.filename)
+    q_ext = _get_safe_ext(quote_f.filename)
+    if not c_ext or not q_ext:
+        return jsonify(error="仅支持 .doc / .docx / .pdf 格式"), 400
 
-    c_path = os.path.join(UPLOAD_FOLDER, f"{uuid.uuid4().hex}.{c_ext}")
-    q_path = os.path.join(UPLOAD_FOLDER, f"{uuid.uuid4().hex}.{q_ext}")
+    try:
+        c_path = _safe_upload_path(c_ext)
+        q_path = _safe_upload_path(q_ext)
+    except ValueError:
+        return jsonify(error="文件路径生成失败，请重试"), 500
+
     contract_f.save(c_path)
     quote_f.save(q_path)
 
@@ -402,16 +424,19 @@ def do_compare():
             matched=matched_info,
         )
 
-    except Exception as exc:
+    except Exception:
         logger.exception("Error processing uploaded files")
-        return jsonify(error=f"处理文件时出错，请检查文件格式是否正确。错误类型：{type(exc).__name__}"), 500
+        return jsonify(error="处理文件时出错，请检查文件格式是否正确"), 500
 
     finally:
         for p in (c_path, q_path):
-            try:
-                os.remove(p)
-            except OSError:
-                pass
+            base = os.path.realpath(UPLOAD_FOLDER)
+            real_p = os.path.realpath(p)
+            if real_p.startswith(base + os.sep):
+                try:
+                    os.remove(real_p)
+                except OSError:
+                    pass
 
 
 # ─── Entry point ─────────────────────────────────────────────────────────────
