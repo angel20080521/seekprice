@@ -56,7 +56,7 @@ def _safe_upload_path(filename_ext: str) -> str:
     name = f"{uuid.uuid4().hex}.{filename_ext}"
     path = os.path.realpath(os.path.join(UPLOAD_FOLDER, name))
     base = os.path.realpath(UPLOAD_FOLDER)
-    if not path.startswith(base + os.sep) and path != base:
+    if not path.startswith(base + os.sep):
         raise ValueError("生成的文件路径异常")
     return path
 
