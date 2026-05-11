@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>报价单 × 合同 对比系统</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Microsoft YaHei', '微软雅黑', 'PingFang SC', sans-serif;
+      background: #f0f2f5;
+      color: #333;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
+      color: #fff;
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: .5px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+    header .sub {
+      font-size: 13px;
+      font-weight: 400;
+      opacity: .8;
+      margin-left: 4px;
+    }
+
+    /* ── Layout ── */
+    main { max-width: 1100px; margin: 28px auto; padding: 0 20px; }
+
+    /* ── Upload cards ── */
+    .upload-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    @media (max-width: 680px) { .upload-row { grid-template-columns: 1fr; } }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 22px 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #444;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .card-title .badge {
+      background: #e8f0fe;
+      color: #1a73e8;
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-size: 12px;
+    }
+
+    .drop-zone {
+      border: 2px dashed #c5cae9;
+      border-radius: 8px;
+      padding: 28px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+    }
+    .drop-zone:hover, .drop-zone.drag-over { border-color: #1a73e8; background: #f0f6ff; }
+    .drop-zone .icon { font-size: 36px; display: block; margin-bottom: 8px; }
+    .drop-zone .hint { font-size: 13px; color: #888; margin-top: 6px; }
+    input[type="file"] { display: none; }
+
+    .file-name {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #1a73e8;
+      font-weight: 500;
+      min-height: 20px;
+      word-break: break-all;
+    }
+
+    /* ── Submit button ── */
+    .btn-compare {
+      display: block;
+      width: 100%;
+      padding: 13px;
+      background: #1a73e8;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s, transform .1s;
+      margin-bottom: 24px;
+    }
+    .btn-compare:hover:not(:disabled) { background: #1557b0; transform: translateY(-1px); }
+    .btn-compare:disabled { background: #aaa; cursor: not-allowed; transform: none; }
+
+    /* ── Loading ── */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #888;
+      font-size: 15px;
+    }
+    .spinner {
+      display: inline-block;
+      width: 32px; height: 32px;
+      border: 4px solid #e0e0e0;
+      border-top-color: #1a73e8;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      vertical-align: middle;
+      margin-right: 10px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Summary stats ── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 6px;
+    }
+    @media (max-width: 600px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+    .stat {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+    }
+    .stat .num { font-size: 30px; font-weight: 700; color: #1a73e8; line-height: 1.1; }
+    .stat.warn .num { color: #d93025; }
+    .stat.ok   .num { color: #34a853; }
+    .stat .lbl { font-size: 12px; color: #888; margin-top: 4px; }
+
+    /* ── Pass banner ── */
+    .pass-banner {
+      text-align: center;
+      padding: 30px;
+      color: #34a853;
+    }
+    .pass-banner .big { font-size: 52px; display: block; margin-bottom: 10px; }
+    .pass-banner p { font-size: 17px; font-weight: 600; }
+
+    /* ── Mismatch table ── */
+    .section-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title .count-badge {
+      background: #fce8e6;
+      color: #d93025;
+      border-radius: 12px;
+      padding: 2px 10px;
+      font-size: 13px;
+    }
+
+    .copy-all-btn {
+      margin-left: auto;
+      padding: 7px 16px;
+      background: #fff;
+      border: 1.5px solid #1a73e8;
+      color: #1a73e8;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .copy-all-btn:hover { background: #e8f0fe; }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th {
+      background: #f5f5f5;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid #e0e0e0;
+      color: #555;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    td { padding: 10px 14px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+    tr:hover td { background: #fafafa; }
+    .mrow td { background: #fff7f6; }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .tag-diff { background: #fce8e6; color: #d93025; }
+
+    .val-c { color: #d93025; font-weight: 600; }
+    .val-q { color: #1a73e8; font-weight: 600; }
+
+    .copy-row-btn {
+      padding: 4px 10px;
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .copy-row-btn:hover { background: #e8f0fe; border-color: #1a73e8; color: #1a73e8; }
+
+    /* ── Detail toggle ── */
+    .detail-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #1a73e8;
+      cursor: pointer;
+      user-select: none;
+      margin-top: 4px;
+    }
+    .detail-toggle:hover { text-decoration: underline; }
+    .detail-body { display: none; margin-top: 14px; }
+    .detail-body.open { display: block; }
+
+    /* ── Error ── */
+    .error-box {
+      background: #fce8e6;
+      border: 1px solid #f28b82;
+      border-radius: 8px;
+      padding: 16px 20px;
+      color: #d93025;
+      font-size: 14px;
+    }
+    .error-box pre {
+      margin-top: 8px;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  📄 报价单 × 合同 对比系统
+  <span class="sub">— 上传两份文件，自动比对关键金额字段</span>
+</header>
+
+<main>
+  <form id="uploadForm">
+    <div class="upload-row">
+
+      <!-- 合同文件 -->
+      <div class="card">
+        <div class="card-title">
+          <span class="badge">基准</span> ① 合同文件
+        </div>
+        <label class="drop-zone" id="contractZone" for="contractFile">
+          <span class="icon">📋</span>
+          <span>点击选择合同文件</span>
+          <div class="hint">支持 .doc &nbsp;/&nbsp; .docx &nbsp;/&nbsp; .pdf</div>
+        </label>
+        <input type="file" id="contractFile" name="contract"
+               accept=".doc,.docx,.pdf" required>
+        <div class="file-name" id="contractName"></div>
+      </div>
+
+      <!-- 报价单文件 -->
+      <div class="card">
+        <div class="card-title">
+          <span class="badge">比对</span> ② 报价单文件
+        </div>
+        <label class="drop-zone" id="quoteZone" for="quoteFile">
+          <span class="icon">📊</span>
+          <span>点击选择报价单文件</span>
+          <div class="hint">支持 .doc &nbsp;/&nbsp; .docx &nbsp;/&nbsp; .pdf</div>
+        </label>
+        <input type="file" id="quoteFile" name="quote"
+               accept=".doc,.docx,.pdf" required>
+        <div class="file-name" id="quoteName"></div>
+      </div>
+
+    </div><!-- .upload-row -->
+
+    <button type="submit" class="btn-compare" id="submitBtn">
+      🔍 开始比对
+    </button>
+  </form>
+
+  <div id="result"></div>
+</main>
+
+<script>
+/* ── File-input display ── */
+function wireInput(inputId, nameId, zoneId) {
+  const inp  = document.getElementById(inputId);
+  const name = document.getElementById(nameId);
+  const zone = document.getElementById(zoneId);
+  inp.addEventListener('change', () => {
+    name.textContent = inp.files[0]?.name || '';
+  });
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      inp.files = dt.files;
+      name.textContent = file.name;
+    }
+  });
+}
+wireInput('contractFile', 'contractName', 'contractZone');
+wireInput('quoteFile',    'quoteName',    'quoteZone');
+
+/* ── Form submit ── */
+document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ 比对中，请稍候…';
+
+  const resultEl = document.getElementById('result');
+  resultEl.innerHTML = `
+    <div class="loading">
+      <span class="spinner"></span> 正在解析文件并比对，请稍候…
+    </div>`;
+
+  try {
+    const res  = await fetch('/compare', { method: 'POST', body: new FormData(this) });
+    const data = await res.json();
+    renderResult(data);
+  } catch (err) {
+    document.getElementById('result').innerHTML =
+      `<div class="error-box">❌ 网络错误：${esc(err.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔍 开始比对';
+  }
+});
+
+/* ── Render result ── */
+function renderResult(data) {
+  const el = document.getElementById('result');
+
+  if (data.error) {
+    el.innerHTML = `<div class="error-box">❌ ${esc(data.error)}
+      ${data.detail ? '<pre>' + esc(data.detail) + '</pre>' : ''}
+    </div>`;
+    return;
+  }
+
+  const { contractItems, quoteItems, matchedPairs, mismatchCount, mismatches, matched } = data;
+
+  /* summary stats */
+  let html = `<div class="card" style="margin-bottom:18px">
+    <div class="stats">
+      <div class="stat">
+        <div class="num">${contractItems}</div>
+        <div class="lbl">合同条目数</div>
+      </div>
+      <div class="stat">
+        <div class="num">${quoteItems}</div>
+        <div class="lbl">报价单条目数</div>
+      </div>
+      <div class="stat">
+        <div class="num">${matchedPairs}</div>
+        <div class="lbl">已匹配对数</div>
+      </div>
+      <div class="stat ${mismatchCount > 0 ? 'warn' : 'ok'}">
+        <div class="num">${mismatchCount}</div>
+        <div class="lbl">${mismatchCount > 0 ? '不一致项' : '全部一致 ✓'}</div>
+      </div>
+    </div>
+  </div>`;
+
+  /* pass / mismatch section */
+  if (mismatchCount === 0) {
+    html += `<div class="card">
+      <div class="pass-banner">
+        <span class="big">✅</span>
+        <p>报价单与合同内容完全一致，未发现任何差异！</p>
+      </div>
+    </div>`;
+  } else {
+    /* build plain-text for copy-all */
+    const plainText = mismatches.map(m =>
+      `【${m.field}】` +
+      `合同位置: ${m.contractPosition} | 合同值: ${m.contractValue} | ` +
+      `报价单位置: ${m.quotePosition} | 报价单值: ${m.quoteValue}`
+    ).join('\n');
+
+    const rows = mismatches.map((m, idx) => {
+      const rowText =
+        `【${m.field}】合同位置: ${m.contractPosition} | 合同值: ${m.contractValue} | ` +
+        `报价单位置: ${m.quotePosition} | 报价单值: ${m.quoteValue}`;
+      return `<tr class="mrow">
+        <td>${idx + 1}</td>
+        <td><span class="tag tag-diff">${esc(m.field)}</span></td>
+        <td>${esc(m.contractPosition)}</td>
+        <td class="val-c">${esc(m.contractValue)}</td>
+        <td>${esc(m.quotePosition)}</td>
+        <td class="val-q">${esc(m.quoteValue)}</td>
+        <td><button class="copy-row-btn" onclick="copyText(this,'${jsStr(rowText)}')">复制</button></td>
+      </tr>`;
+    }).join('');
+
+    html += `<div class="card" style="margin-bottom:18px">
+      <div class="section-title">
+        ❌ 不一致明细
+        <span class="count-badge">共 ${mismatchCount} 项</span>
+        <button class="copy-all-btn" onclick="copyText(this,'${jsStr(plainText)}')">
+          📋 复制全部差异
+        </button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>字段</th>
+              <th>合同位置</th>
+              <th>合同值 <span style="color:#d93025">●</span></th>
+              <th>报价单位置</th>
+              <th>报价单值 <span style="color:#1a73e8">●</span></th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+
+  /* matched pairs (collapsible) */
+  if (matched && matched.length) {
+    const pairRows = matched.map((m, i) =>
+      `<tr>
+        <td>${i + 1}</td>
+        <td>${esc(m.contractPos)}</td>
+        <td>${esc(m.quotePos)}</td>
+        <td>${esc(m.name)}</td>
+      </tr>`
+    ).join('');
+
+    html += `<div class="card">
+      <div class="detail-toggle" onclick="toggleDetail(this)">
+        ▶ 展开匹配明细（共 ${matched.length} 对）
+      </div>
+      <div class="detail-body">
+        <div class="table-wrap" style="margin-top:12px">
+          <table>
+            <thead>
+              <tr><th>#</th><th>合同位置</th><th>报价单位置</th><th>品名/型号</th></tr>
+            </thead>
+            <tbody>${pairRows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+/* ── Helpers ── */
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+function jsStr(s) {
+  return String(s ?? '')
+    .replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n');
+}
+
+function copyText(btn, text) {
+  const decoded = text.replace(/\\n/g,'\n');
+  const orig = btn.textContent;
+  navigator.clipboard.writeText(decoded).then(() => {
+    btn.textContent = '✅ 已复制';
+    setTimeout(() => btn.textContent = orig, 2000);
+  }).catch(() => {
+    /* fallback for http contexts */
+    const ta = document.createElement('textarea');
+    ta.value = decoded;
+    ta.style.position = 'fixed';
+    ta.style.opacity  = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = '✅ 已复制';
+    setTimeout(() => btn.textContent = orig, 2000);
+  });
+}
+
+function toggleDetail(btn) {
+  const body = btn.nextElementSibling;
+  const open = body.classList.toggle('open');
+  btn.textContent = btn.textContent.replace(open ? '▶' : '▼', open ? '▼' : '▶');
+}
+</script>
+</body>
+</html>

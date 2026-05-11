@@ -1,0 +1,6 @@
+services:
+  seekprice:
+    build: .
+    ports:
+      - "5003:5003"
+    restart: unless-stopped
