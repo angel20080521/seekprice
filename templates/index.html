@@ -38,76 +38,187 @@
     main { max-width: 1100px; margin: 28px auto; padding: 0 20px; }
 
     /* ── Upload cards ── */
+    .upload-section {
+      background: #fff;
+      border-radius: 14px;
+      padding: 32px 28px 24px;
+      box-shadow: 0 1px 6px rgba(0,0,0,.07);
+      margin-bottom: 18px;
+    }
+    .upload-section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .upload-section-header .section-icon {
+      width: 38px; height: 38px;
+      background: #e8f0fe;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .upload-section-header .section-label {
+      font-size: 16px; font-weight: 700; color: #1a1a1a;
+    }
+    .upload-section-header .section-desc {
+      font-size: 13px; color: #888; margin-top: 2px;
+    }
+
     .upload-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 18px;
-      margin-bottom: 18px;
+      gap: 16px;
+      margin-bottom: 22px;
+      align-items: stretch;
     }
     @media (max-width: 680px) { .upload-row { grid-template-columns: 1fr; } }
 
+    .upload-card {
+      border-radius: 12px;
+      background: #f8f9fb;
+      overflow: hidden;
+      transition: background .2s, box-shadow .2s;
+    }
+    .upload-card:focus-within,
+    .upload-card:has(.drop-zone.drag-over) {
+      background: #eef3fd;
+      box-shadow: 0 0 0 2px rgba(26,115,232,.25);
+    }
+    .step-circle {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .step-circle.step-1 { background: #1a73e8; color: #fff; }
+    .step-circle.step-2 { background: #34a853; color: #fff; }
+    .role-badge {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .role-badge.base { background: #e8f0fe; color: #1a73e8; }
+    .role-badge.compare { background: #e6f4ea; color: #34a853; }
+
+    .drop-zone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 32px 20px 24px;
+      cursor: pointer;
+      text-align: center;
+      min-height: 180px;
+      transition: background .2s;
+    }
+    .drop-zone:hover { background: rgba(26,115,232,.05); }
+    .drop-zone.drag-over { background: #e8f0fe; }
+    .drop-zone .dz-card-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .drop-zone .dz-card-top .dz-card-title {
+      font-size: 14px; font-weight: 600; color: #2c2c2c;
+    }
+    .drop-zone .dz-icon {
+      font-size: 36px;
+      line-height: 1;
+      transition: transform .15s;
+    }
+    .drop-zone:hover .dz-icon { transform: scale(1.08); }
+    .drop-zone .dz-text {
+      font-size: 13px; color: #666;
+      max-width: 200px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .drop-zone .dz-types {
+      display: flex; gap: 5px; justify-content: center; flex-wrap: wrap;
+    }
+    .drop-zone .dz-types span {
+      background: #e9ecf0;
+      border-radius: 4px;
+      padding: 1px 7px;
+      font-size: 11px;
+      color: #666;
+      font-weight: 500;
+    }
+    .drop-zone .dz-btn {
+      padding: 7px 22px;
+      background: #1a73e8;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      transition: background .15s;
+      margin-top: 4px;
+    }
+    .drop-zone:hover .dz-btn { background: #1557b0; }
+    .drop-zone.drag-over .dz-btn { background: #1557b0; }
+    .drop-zone.has-file .dz-icon-wrap { color: #34a853; }
+    .drop-zone.has-file .dz-text { color: #1e8e3e; font-weight: 600; }
+    .drop-zone.has-file .dz-btn { background: #34a853; }
+    .drop-zone.has-file:hover .dz-btn { background: #2d8f47; }
+    .drop-zone .dz-filename {
+      display: none;
+      font-size: 12px; color: #34a853; font-weight: 500;
+      max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .drop-zone.has-file .dz-filename { display: block; }
+    .drop-zone.has-file .dz-hint { display: none; }
+    .drop-zone .dz-clear {
+      display: none;
+      font-size: 12px; color: #aaa; cursor: pointer; margin-top: 2px;
+    }
+    .drop-zone .dz-clear:hover { color: #d93025; }
+    .drop-zone.has-file .dz-clear { display: block; }
+    input[type="file"] { display: none; }
+
+    /* ── Submit button ── */
+    .submit-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .btn-compare {
+      flex: 1;
+      padding: 13px;
+      background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .2s, transform .1s, box-shadow .2s;
+      box-shadow: 0 2px 8px rgba(26,115,232,.35);
+      letter-spacing: .3px;
+    }
+    .btn-compare:hover:not(:disabled) {
+      opacity: .92;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(26,115,232,.4);
+    }
+    .btn-compare:disabled { background: #c6c6c6; cursor: not-allowed; transform: none; box-shadow: none; }
+    .upload-hint-tip {
+      font-size: 12px; color: #bbb; white-space: nowrap;
+    }
+
+    /* legacy .card kept for result cards */
     .card {
       background: #fff;
       border-radius: 10px;
       padding: 22px 24px;
       box-shadow: 0 1px 4px rgba(0,0,0,.08);
     }
-    .card-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: #444;
-      margin-bottom: 14px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .card-title .badge {
-      background: #e8f0fe;
-      color: #1a73e8;
-      border-radius: 4px;
-      padding: 2px 7px;
-      font-size: 12px;
-    }
-
-    .drop-zone {
-      border: 2px dashed #c5cae9;
-      border-radius: 8px;
-      padding: 28px 16px;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color .2s, background .2s;
-    }
-    .drop-zone:hover, .drop-zone.drag-over { border-color: #1a73e8; background: #f0f6ff; }
-    .drop-zone .icon { font-size: 36px; display: block; margin-bottom: 8px; }
-    .drop-zone .hint { font-size: 13px; color: #888; margin-top: 6px; }
-    input[type="file"] { display: none; }
-
-    .file-name {
-      margin-top: 10px;
-      font-size: 13px;
-      color: #1a73e8;
-      font-weight: 500;
-      min-height: 20px;
-      word-break: break-all;
-    }
-
-    /* ── Submit button ── */
-    .btn-compare {
-      display: block;
-      width: 100%;
-      padding: 13px;
-      background: #1a73e8;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background .2s, transform .1s;
-      margin-bottom: 24px;
-    }
-    .btn-compare:hover:not(:disabled) { background: #1557b0; transform: translateY(-1px); }
-    .btn-compare:disabled { background: #aaa; cursor: not-allowed; transform: none; }
 
     /* ── Loading ── */
     .loading {
@@ -131,10 +242,11 @@
     /* ── Summary stats ── */
     .stats {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(6, 1fr);
       gap: 14px;
       margin-bottom: 6px;
     }
+    @media (max-width: 960px) { .stats { grid-template-columns: repeat(3, 1fr); } }
     @media (max-width: 600px) { .stats { grid-template-columns: repeat(2, 1fr); } }
     .stat {
       background: #f8f9fa;
@@ -143,9 +255,42 @@
       text-align: center;
     }
     .stat .num { font-size: 30px; font-weight: 700; color: #1a73e8; line-height: 1.1; }
-    .stat.warn .num { color: #d93025; }
-    .stat.ok   .num { color: #34a853; }
+    .stat.warn    .num { color: #d93025; }
+    .stat.ok      .num { color: #34a853; }
+    .stat.neutral .num { color: #f29900; }
+    .stat.pending .num { color: #e37400; }
     .stat .lbl { font-size: 12px; color: #888; margin-top: 4px; }
+
+    /* ── Pending (low-confidence) mismatch block ── */
+    .pending-box {
+      background: #fffbe6;
+      border: 1.5px solid #ffe58f;
+      border-radius: 8px;
+      padding: 16px 20px;
+      color: #614700;
+      font-size: 14px;
+    }
+    .pending-box .section-title { margin-bottom: 12px; }
+    .pending-box .count-badge-p {
+      background: #fff1b8;
+      color: #ad6800;
+      border-radius: 12px;
+      padding: 2px 10px;
+      font-size: 13px;
+    }
+    .pending-box .tag-pending { background: #fff1b8; color: #ad6800; }
+    .prow td { background: #fffdf0; }
+
+    .warn-box {
+      background: #fff7e6;
+      border: 1px solid #ffd591;
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: #8a5b00;
+      font-size: 13px;
+      margin-top: 12px;
+      line-height: 1.6;
+    }
 
     /* ── Pass banner ── */
     .pass-banner {
@@ -266,43 +411,63 @@
 
 <main>
   <form id="uploadForm">
-    <div class="upload-row">
-
-      <!-- 合同文件 -->
-      <div class="card">
-        <div class="card-title">
-          <span class="badge">基准</span> ① 合同文件
+    <div class="upload-section">
+      <div class="upload-section-header">
+        <div class="section-icon">📂</div>
+        <div>
+          <div class="section-label">上传文件</div>
+          <div class="section-desc">选择合同与报价单，系统将自动比对关键金额字段</div>
         </div>
-        <label class="drop-zone" id="contractZone" for="contractFile">
-          <span class="icon">📋</span>
-          <span>点击选择合同文件</span>
-          <div class="hint">支持 .doc &nbsp;/&nbsp; .docx &nbsp;/&nbsp; .pdf</div>
-        </label>
-        <input type="file" id="contractFile" name="contract"
-               accept=".doc,.docx,.pdf" required>
-        <div class="file-name" id="contractName"></div>
       </div>
 
-      <!-- 报价单文件 -->
-      <div class="card">
-        <div class="card-title">
-          <span class="badge">比对</span> ② 报价单文件
+      <div class="upload-row">
+
+        <!-- 合同文件 -->
+        <div class="upload-card" id="contractCard">
+          <label class="drop-zone" id="contractZone" for="contractFile">
+            <div class="dz-card-top">
+              <span class="step-circle step-1">1</span>
+              <span class="dz-card-title">合同文件</span>
+              <span class="role-badge base">基准</span>
+            </div>
+            <div class="dz-icon">📋</div>
+            <div class="dz-text dz-hint">点击选择或拖拽文件至此</div>
+            <div class="dz-filename" id="contractFileName"></div>
+            <div class="dz-types dz-hint"><span>.doc</span><span>.docx</span><span>.pdf</span></div>
+            <div class="dz-btn">选择文件</div>
+            <div class="dz-clear" onclick="clearFile(event,'contractFile','contractZone','contractFileName')">移除文件 ✕</div>
+          </label>
+          <input type="file" id="contractFile" name="contract"
+                 accept=".doc,.docx,.pdf" required>
         </div>
-        <label class="drop-zone" id="quoteZone" for="quoteFile">
-          <span class="icon">📊</span>
-          <span>点击选择报价单文件</span>
-          <div class="hint">支持 .doc &nbsp;/&nbsp; .docx &nbsp;/&nbsp; .pdf</div>
-        </label>
-        <input type="file" id="quoteFile" name="quote"
-               accept=".doc,.docx,.pdf" required>
-        <div class="file-name" id="quoteName"></div>
+
+        <!-- 报价单文件 -->
+        <div class="upload-card" id="quoteCard">
+          <label class="drop-zone" id="quoteZone" for="quoteFile">
+            <div class="dz-card-top">
+              <span class="step-circle step-2">2</span>
+              <span class="dz-card-title">报价单文件</span>
+              <span class="role-badge compare">比对</span>
+            </div>
+            <div class="dz-icon">📊</div>
+            <div class="dz-text dz-hint">点击选择或拖拽文件至此</div>
+            <div class="dz-filename" id="quoteFileName"></div>
+            <div class="dz-types dz-hint"><span>.doc</span><span>.docx</span><span>.pdf</span></div>
+            <div class="dz-btn">选择文件</div>
+            <div class="dz-clear" onclick="clearFile(event,'quoteFile','quoteZone','quoteFileName')">移除文件 ✕</div>
+          </label>
+          <input type="file" id="quoteFile" name="quote"
+                 accept=".doc,.docx,.pdf" required>
+        </div>
+
+      </div><!-- .upload-row -->
+
+      <div class="submit-row">
+        <button type="submit" class="btn-compare" id="submitBtn">
+          🔍 &nbsp;开始比对
+        </button>
       </div>
-
-    </div><!-- .upload-row -->
-
-    <button type="submit" class="btn-compare" id="submitBtn">
-      🔍 开始比对
-    </button>
+    </div><!-- .upload-section -->
   </form>
 
   <div id="result"></div>
@@ -310,13 +475,20 @@
 
 <script>
 /* ── File-input display ── */
-function wireInput(inputId, nameId, zoneId) {
-  const inp  = document.getElementById(inputId);
-  const name = document.getElementById(nameId);
-  const zone = document.getElementById(zoneId);
-  inp.addEventListener('change', () => {
-    name.textContent = inp.files[0]?.name || '';
-  });
+function wireInput(inputId, fileNameId, zoneId) {
+  const inp      = document.getElementById(inputId);
+  const fileSpan = document.getElementById(fileNameId);
+  const zone     = document.getElementById(zoneId);
+
+  function setFile(file) {
+    if (!file) return;
+    fileSpan.textContent = file.name;
+    zone.classList.add('has-file');
+    zone.querySelector('.dz-btn').textContent = '重新选择';
+  }
+
+  inp.addEventListener('change', () => setFile(inp.files[0]));
+
   zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
   zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
   zone.addEventListener('drop', e => {
@@ -327,12 +499,24 @@ function wireInput(inputId, nameId, zoneId) {
       const dt = new DataTransfer();
       dt.items.add(file);
       inp.files = dt.files;
-      name.textContent = file.name;
+      setFile(file);
     }
   });
 }
-wireInput('contractFile', 'contractName', 'contractZone');
-wireInput('quoteFile',    'quoteName',    'quoteZone');
+wireInput('contractFile', 'contractFileName', 'contractZone');
+wireInput('quoteFile',    'quoteFileName',    'quoteZone');
+
+function clearFile(e, inputId, zoneId, fileNameId) {
+  e.preventDefault();
+  e.stopPropagation();
+  const inp      = document.getElementById(inputId);
+  const fileSpan = document.getElementById(fileNameId);
+  const zone     = document.getElementById(zoneId);
+  inp.value = '';
+  fileSpan.textContent = '';
+  zone.classList.remove('has-file');
+  zone.querySelector('.dz-btn').textContent = '选择文件';
+}
 
 /* ── Form submit ── */
 document.getElementById('uploadForm').addEventListener('submit', async function(e) {
@@ -371,7 +555,20 @@ function renderResult(data) {
     return;
   }
 
-  const { contractItems, quoteItems, matchedPairs, mismatchCount, mismatches, matched } = data;
+  const {
+    contractItems,
+    quoteItems,
+    matchedPairs,
+    unmatchedContractItems = 0,
+    unmatchedQuoteItems = 0,
+    unmatchedContractRows = [],
+    unmatchedQuoteRows = [],
+    mismatchCount,
+    pendingCount = 0,
+    mismatches,
+    pendingMismatches = [],
+    matched
+  } = data;
 
   /* summary stats */
   let html = `<div class="card" style="margin-bottom:18px">
@@ -388,19 +585,87 @@ function renderResult(data) {
         <div class="num">${matchedPairs}</div>
         <div class="lbl">已匹配对数</div>
       </div>
+      <div class="stat ${(unmatchedContractItems + unmatchedQuoteItems) > 0 ? 'neutral' : 'ok'}">
+        <div class="num">${unmatchedContractItems + unmatchedQuoteItems}</div>
+        <div class="lbl">未匹配条目</div>
+      </div>
+      <div class="stat ${pendingCount > 0 ? 'pending' : 'ok'}">
+        <div class="num">${pendingCount}</div>
+        <div class="lbl">${pendingCount > 0 ? '待人工确认' : '无需确认 ✓'}</div>
+      </div>
       <div class="stat ${mismatchCount > 0 ? 'warn' : 'ok'}">
         <div class="num">${mismatchCount}</div>
-        <div class="lbl">${mismatchCount > 0 ? '不一致项' : '全部一致 ✓'}</div>
+        <div class="lbl">${mismatchCount > 0 ? '确认不一致' : '全部一致 ✓'}</div>
       </div>
     </div>
   </div>`;
 
-  /* pass / mismatch section */
+  if ((unmatchedContractItems + unmatchedQuoteItems) > 0) {
+    const cText = unmatchedContractRows.slice(0, 3).map(r => r.position || '-').join('，');
+    const qText = unmatchedQuoteRows.slice(0, 3).map(r => r.position || '-').join('，');
+    html += `<div class="card" style="margin-bottom:18px">
+      <div class="warn-box">
+        ⚠️ 发现未匹配条目：合同 ${unmatchedContractItems} 条，报价单 ${unmatchedQuoteItems} 条。<br>
+        这些条目已从字段差异计算中排除，避免出现“强行配对”导致的误报。<br>
+        ${unmatchedContractItems ? `合同示例位置：${esc(cText || '-')}<br>` : ''}
+        ${unmatchedQuoteItems ? `报价单示例位置：${esc(qText || '-')}` : ''}
+      </div>
+    </div>`;
+  }
+
+  /* ── pending (low-confidence) section ── */
+  if (pendingCount > 0) {
+    const pendPlain = pendingMismatches.map(m =>
+      `【待确认·${m.field}】` +
+      `合同位置: ${m.contractPosition} | 合同值: ${m.contractValue} | ` +
+      `报价单位置: ${m.quotePosition} | 报价单值: ${m.quoteValue}`
+    ).join('\n');
+    const pendRows = pendingMismatches.map((m, idx) => {
+      const rowText =
+        `【待确认·${m.field}】合同位置: ${m.contractPosition} | 合同值: ${m.contractValue} | ` +
+        `报价单位置: ${m.quotePosition} | 报价单值: ${m.quoteValue}`;
+      return `<tr class="prow">
+        <td>${idx + 1}</td>
+        <td><span class="tag tag-pending">${esc(m.field)}</span></td>
+        <td>${esc(m.contractPosition)}</td>
+        <td class="val-c">${esc(m.contractValue)}</td>
+        <td>${esc(m.quotePosition)}</td>
+        <td class="val-q">${esc(m.quoteValue)}</td>
+        <td><button class="copy-row-btn" onclick="copyText(this,'${jsStr(rowText)}')">复制</button></td>
+      </tr>`;
+    }).join('');
+    html += `<div class="card pending-box" style="margin-bottom:18px">
+      <div class="section-title">
+        ⚠️ 待人工确认（低置信度匹配）
+        <span class="count-badge-p">共 ${pendingCount} 项</span>
+        <button class="copy-all-btn" style="border-color:#e37400;color:#e37400" onclick="copyText(this,'${jsStr(pendPlain)}')">
+          📋 复制全部待确认项
+        </button>
+      </div>
+      <p style="font-size:13px;color:#8a5b00;margin-bottom:14px">以下差异来自<strong>名称/ID 单独匹配</strong>，置信度较低，数值差异可能是行配对偏差所致，请人工核实后再判定。</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>字段</th><th>合同位置</th>
+              <th>合同值 <span style="color:#d93025">●</span></th>
+              <th>报价单位置</th>
+              <th>报价单值 <span style="color:#1a73e8">●</span></th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>${pendRows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+
+  /* ── confirmed mismatch / pass section ── */
   if (mismatchCount === 0) {
     html += `<div class="card">
       <div class="pass-banner">
         <span class="big">✅</span>
-        <p>报价单与合同内容完全一致，未发现任何差异！</p>
+        <p>${pendingCount > 0 ? '高置信度比对全部一致，低置信度项请人工核查上方列表。' : '报价单与合同内容完全一致，未发现任何差异！'}</p>
       </div>
     </div>`;
   } else {
@@ -455,14 +720,18 @@ function renderResult(data) {
 
   /* matched pairs (collapsible) */
   if (matched && matched.length) {
-    const pairRows = matched.map((m, i) =>
-      `<tr>
+    const pairRows = matched.map((m, i) => {
+      const confLabel = m.confidence === 'high'
+        ? `<span style="color:#34a853;font-weight:600">高</span>`
+        : `<span style="color:#e37400;font-weight:600">中（需关注）</span>`;
+      return `<tr>
         <td>${i + 1}</td>
         <td>${esc(m.contractPos)}</td>
         <td>${esc(m.quotePos)}</td>
         <td>${esc(m.name)}</td>
-      </tr>`
-    ).join('');
+        <td>${confLabel}</td>
+      </tr>`;
+    }).join('');
 
     html += `<div class="card">
       <div class="detail-toggle" onclick="toggleDetail(this)">
@@ -472,7 +741,7 @@ function renderResult(data) {
         <div class="table-wrap" style="margin-top:12px">
           <table>
             <thead>
-              <tr><th>#</th><th>合同位置</th><th>报价单位置</th><th>品名/型号</th></tr>
+              <tr><th>#</th><th>合同位置</th><th>报价单位置</th><th>品名/型号</th><th>匹配置信度</th></tr>
             </thead>
             <tbody>${pairRows}</tbody>
           </table>

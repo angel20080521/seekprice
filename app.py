@@ -251,23 +251,32 @@ def _fp_name(row: dict) -> str:
     return key if len(key) >= 3 else ""
 
 
+def _fp_id(row: dict) -> str:
+    """ID-only fingerprint."""
+    return norm_text(row.get("id", ""))
+
+
 def match_rows(
     contract_rows: list[dict],
     quote_rows: list[dict],
-) -> list[tuple[dict, dict]]:
+) -> tuple[list[tuple[dict, dict, str]], list[dict], list[dict]]:
     """
     Match each contract row to a quote row.
     Priority:
-      1. Exact (id + name) fingerprint match
-      2. Name-only fingerprint match
-      3. Sequential fallback
-    Returns list of (contract_row, quote_row) pairs.
+      1. Exact (id + name) fingerprint → confidence='high'
+      2. Name-only fingerprint         → confidence='medium'
+      3. ID-only fingerprint           → confidence='medium'
+    Returns:
+      - matched pairs: list of (contract_row, quote_row, confidence)
+      - unmatched contract rows
+      - unmatched quote rows
     """
     used_q: set[int] = set()
 
     # Pre-build lookup indices for quote rows
     q_by_full: dict[str, list[int]] = {}
     q_by_name: dict[str, list[int]] = {}
+    q_by_id: dict[str, list[int]] = {}
     for qi, qr in enumerate(quote_rows):
         fp = _fp_full(qr)
         if fp:
@@ -275,43 +284,53 @@ def match_rows(
         fn = _fp_name(qr)
         if fn:
             q_by_name.setdefault(fn, []).append(qi)
+        fid = _fp_id(qr)
+        if fid:
+            q_by_id.setdefault(fid, []).append(qi)
 
-    pairs: list[tuple[dict, dict | None]] = []
+    pairs: list[tuple[dict, dict, str]] = []
+    unmatched_contract_rows: list[dict] = []
 
     for cr in contract_rows:
         matched_qi: int | None = None
+        confidence: str = "medium"
 
-        # 1) Full fingerprint
+        # 1) Full fingerprint → high confidence
         fp = _fp_full(cr)
         if fp and fp in q_by_full:
             for qi in q_by_full[fp]:
                 if qi not in used_q:
                     matched_qi = qi
+                    confidence = "high"
                     break
 
-        # 2) Name-only fingerprint
+        # 2) Name-only fingerprint → medium confidence
         if matched_qi is None:
             fn = _fp_name(cr)
             if fn and fn in q_by_name:
                 for qi in q_by_name[fn]:
                     if qi not in used_q:
                         matched_qi = qi
+                        confidence = "medium"
                         break
+
+        # 3) ID-only fingerprint (only single candidate) → medium confidence
+        if matched_qi is None:
+            fid = _fp_id(cr)
+            if fid and fid in q_by_id:
+                candidates = [qi for qi in q_by_id[fid] if qi not in used_q]
+                if len(candidates) == 1:
+                    matched_qi = candidates[0]
+                    confidence = "medium"
 
         if matched_qi is not None:
             used_q.add(matched_qi)
-            pairs.append((cr, quote_rows[matched_qi]))
+            pairs.append((cr, quote_rows[matched_qi], confidence))
         else:
-            pairs.append((cr, None))   # will be resolved in sequential pass
+            unmatched_contract_rows.append(cr)
 
-    # 3) Sequential fallback for unresolved contract rows
-    leftover_q = [qi for qi in range(len(quote_rows)) if qi not in used_q]
-    none_indices = [i for i, (_, qr) in enumerate(pairs) if qr is None]
-    for pair_i, qi in zip(none_indices, leftover_q):
-        cr, _ = pairs[pair_i]
-        pairs[pair_i] = (cr, quote_rows[qi])
-
-    return [(cr, qr) for cr, qr in pairs if qr is not None]
+    unmatched_quote_rows = [quote_rows[qi] for qi in range(len(quote_rows)) if qi not in used_q]
+    return pairs, unmatched_contract_rows, unmatched_quote_rows
 
 
 # ─── Comparison ───────────────────────────────────────────────────────────────
@@ -328,21 +347,26 @@ COMPARE_FIELDS = [
 def compare_documents(
     contract_rows: list[dict],
     quote_rows: list[dict],
-) -> tuple[list[dict], list[dict]]:
+) -> tuple[list[dict], list[dict], list[dict], list[dict], list[dict]]:
     """
-    Returns (mismatches, matched_pairs_info).
-    mismatches: list of dicts with position / field / values.
-    matched_pairs_info: human-readable summary of which rows were paired.
+    Returns:
+      (mismatches, pending_mismatches, matched_pairs_info,
+       unmatched_contract_rows, unmatched_quote_rows)
+
+    mismatches:         confirmed differences from high-confidence pairs.
+    pending_mismatches: differences from medium-confidence pairs (need human review).
     """
-    pairs = match_rows(contract_rows, quote_rows)
+    pairs, unmatched_contract_rows, unmatched_quote_rows = match_rows(contract_rows, quote_rows)
     mismatches: list[dict] = []
+    pending_mismatches: list[dict] = []
     matched_info: list[dict] = []
 
-    for cr, qr in pairs:
+    for cr, qr, confidence in pairs:
         matched_info.append({
             "contractPos": cr.get("position", ""),
             "quotePos": qr.get("position", ""),
             "name": (_best_key(cr) or _best_key(qr)),
+            "confidence": confidence,
         })
 
         for fkey, fname in COMPARE_FIELDS:
@@ -362,15 +386,20 @@ def compare_documents(
                 same = str(cv).strip() == str(qv).strip()
 
             if not same:
-                mismatches.append({
+                record = {
                     "contractPosition": cr.get("position", ""),
                     "quotePosition":    qr.get("position", ""),
                     "field":            fname,
                     "contractValue":    str(cv),
                     "quoteValue":       str(qv),
-                })
+                    "confidence":       confidence,
+                }
+                if confidence == "high":
+                    mismatches.append(record)
+                else:
+                    pending_mismatches.append(record)
 
-    return mismatches, matched_info
+    return mismatches, pending_mismatches, matched_info, unmatched_contract_rows, unmatched_quote_rows
 
 
 # ─── Routes ───────────────────────────────────────────────────────────────────
@@ -413,15 +442,21 @@ def do_compare():
         if not q_rows:
             return jsonify(error="无法从报价单文件中提取数据，请确认文件包含数值表格"), 400
 
-        mismatches, matched_info = compare_documents(c_rows, q_rows)
+        mismatches, pending, matched_info, unmatched_c, unmatched_q = compare_documents(c_rows, q_rows)
 
         return jsonify(
             contractItems=len(c_rows),
             quoteItems=len(q_rows),
             matchedPairs=len(matched_info),
+            unmatchedContractItems=len(unmatched_c),
+            unmatchedQuoteItems=len(unmatched_q),
             mismatchCount=len(mismatches),
+            pendingCount=len(pending),
             mismatches=mismatches,
+            pendingMismatches=pending,
             matched=matched_info,
+            unmatchedContractRows=unmatched_c,
+            unmatchedQuoteRows=unmatched_q,
         )
 
     except Exception:
